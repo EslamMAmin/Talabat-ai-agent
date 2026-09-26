@@ -8,6 +8,18 @@ function cleanCSVField(field: string): string {
   return field.trim().replace(/^"+|"+$/g, "").replace(/""/g, '"');
 }
 
+// 🔤 دالة توحيد الأحرف والمعالجة الجذرية للأخطاء الإملائية والفرنكو
+function normalizeText(text: string): string {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // 🌐 دالة الترجمة الفورية باللغات الـ 5
 async function translateText(text: string, targetLang: string): Promise<string> {
   try {
@@ -35,7 +47,7 @@ async function translateToAllLanguages(arabicText: string) {
   };
 }
 
-// 📝 دالة تغذية الـ Google Sheet بالنص المدخل
+// 📝 دالة تغذية الـ Google Sheet بالنص المدخل كاملاً للحفظ المستمر
 async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: string, translations: any) {
   try {
     const payload = {
@@ -58,101 +70,113 @@ async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: st
   }
 }
 
-// 🧠 معالجة وتحليل الشروط بدقة واحترافية للتقييم 10/10
-function processResponse(cleanInput: string, hasGreeting: boolean): string {
+// 🧠 محرك التحليل والتعرف على الأحرف والأنماط بكافة أشكالها
+function processResponse(rawInput: string, hasGreeting: boolean): string | null {
+  const norm = normalizeText(rawInput);
+
   const greeting = hasGreeting 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك،";
 
-  // 1. مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage / Reassign Request)
-  const isEquipmentIssue = 
-    cleanInput.includes("باوتش") || 
-    cleanInput.includes("pouch") || 
-    cleanInput.includes("box") || 
-    cleanInput.includes("صندوق") || 
-    cleanInput.includes("مقطوع") || 
-    cleanInput.includes("تالف") || 
-    cleanInput.includes("مكسور") || 
-    cleanInput.includes("ينكسر") ||
-    cleanInput.includes("المعدات");
+  // 1. 📍 كشف أشكال كتابة "المسافة البعيدة" بكافة الأحرف والفرانكو والأخطاء الإملائية
+  const distanceKeywords = [
+    "مسافه", "مسافة", "المسافه", "المسافة",
+    "بعيد", "بعيده", "بعيدة", "بعيدره", "ب عيد",
+    "distance", "far", "long",
+    "masafa", "msafa", "masafeh", "msafeh",
+    "ba3id", "ba3ida", "ba3ideh"
+  ];
 
-  if (isEquipmentIssue) {
+  const isDistanceIssue = distanceKeywords.some((kw) => norm.includes(normalizeText(kw)));
+
+  if (isDistanceIssue) {
+    return `${greeting} يرجى الانتظار لحظات بينما نقوم بمراجعة مسافة الطلب والموقع والتحقق من التفاصيل فوراً.`;
+  }
+
+  // 2. 🎒 مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage)
+  const equipmentKeywords = [
+    "باوتش", "pouch", "box", "صندوق", "مقطوع", "تالف", "مكسور", "ينكسر", "معدات"
+  ];
+  if (equipmentKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
     return `${greeting} نعتذر عن المشكلة المتعلقة بتلف الحقيبة/الباوتش. يرجى الانتظار لحظات بينما نقوم بإعادة تحويل الطلب لسائق آخر لحماية الشحنة فوراً.`;
   }
 
-  // 2. طلب استراحة / راحة / صلاة (Break Request)
-  const isBreakRequest = 
-    cleanInput.includes("راحة") || 
-    cleanInput.includes("راحه") || 
-    cleanInput.includes("استراحة") || 
-    cleanInput.includes("استراحه") || 
-    cleanInput.includes("break") || 
-    cleanInput.includes("صلاة") || 
-    cleanInput.includes("صلاه") || 
-    cleanInput.includes("غداء") || 
-    cleanInput.includes("بريك");
-
-  if (isBreakRequest) {
+  // 3. ☕ طلب استراحة / راحة / صلاة (Break Request)
+  const breakKeywords = [
+    "راحه", "راحة", "استراحه", "استراحة", "break", "صلاه", "صلاة", "غداء", "بريك"
+  ];
+  if (breakKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
     return `${greeting} تم استلام طلب الاستراحة. يرجى التأكد من عدم وجود طلبات نشطة حالياً، وسنساعدك في تفعيل أوقات الراحة فوراً.`;
   }
 
-  // 3. كشف طلب كبير / Large Order / الشنطة مش واخدة الطلب
+  // 4. 📦 طلب كبير / Large Order / الشنطة مش واخدة الطلب
   const isLargeOrder = 
-    cleanInput.includes("bag") || 
-    cleanInput.includes("fit") || 
-    cleanInput.includes("large") || 
-    cleanInput.includes("big") || 
-    cleanInput.includes("حجم") || 
-    cleanInput.includes("كبير") || 
-    cleanInput.includes("شنطة") || 
-    cleanInput.includes("حقيبة") ||
-    (cleanInput.includes("car") && cleanInput.includes("order"));
+    norm.includes("bag") || 
+    norm.includes("fit") || 
+    norm.includes("large") || 
+    norm.includes("big") || 
+    norm.includes("حجم") || 
+    norm.includes("كبير") || 
+    norm.includes("شنطه") || 
+    norm.includes("حقيبه") ||
+    (norm.includes("car") && norm.includes("order"));
 
   if (isLargeOrder) {
     return `${greeting} نعتذر عن كبر حجم الطلب (Large Order) وعدم اتساعه للحقيبة. يرجى الانتظار لحظات بينما نقوم بإعادة تعيين سائق سيارة (Car Rider) لنقل الطلب فوراً.`;
   }
 
-  // 4. عطل أو حادث مركبة فقط
-  if (cleanInput.includes("عطل") || cleanInput.includes("موتور") || cleanInput.includes("بنشر") || cleanInput.includes("حادث") || cleanInput.includes("breakdown")) {
+  // 5. 🛠️ عطل أو حادث مركبة فقط
+  if (norm.includes("عطل") || norm.includes("موتور") || norm.includes("بنشر") || norm.includes("حادث") || norm.includes("breakdown")) {
     return `${greeting} نرجو أن تكون بخير. يرجى إفادتنا هل الطلب معك الآن ليتسنى لنا اتخاذ الإجراء المناسب وتفريغك لإصلاح المركبة.`;
   }
 
-  // 5. رفض التسليم / مشاكل العميل
-  if (cleanInput.includes("عميل") || cleanInput.includes("استلمش") || cleanInput.includes("رفض") || cleanInput.includes("تواصل")) {
+  // 6. 👤 رفض التسليم / مشاكل العميل
+  if (norm.includes("عميل") || norm.includes("استلمش") || norm.includes("رفض") || norm.includes("تواصل")) {
     return `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى محاولة التواصل معه مجدداً، ونحن نتابع حالة الطلب معكم الآن.`;
   }
 
-  // 6. كود التسليم / الإرجاع
-  if (cleanInput.includes("كود") || cleanInput.includes("pin") || cleanInput.includes("رمز")) {
+  // 7. 🔑 كود التسليم / الإرجاع
+  if (norm.includes("كود") || norm.includes("pin") || norm.includes("رمز")) {
     return `${greeting} يرجى الانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع فوراً.`;
   }
 
-  // 7. القسائم والخصومات وسعر الطلب
-  if (cleanInput.includes("قسيمه") || cleanInput.includes("قسيمة") || cleanInput.includes("voucher") || cleanInput.includes("خصم") || cleanInput.includes("سعر الطلب")) {
+  // 8. 🎟️ القسائم والخصومات وسعر الطلب
+  if (norm.includes("قسيمه") || norm.includes("voucher") || norm.includes("خصم") || norm.includes("سعر الطلب")) {
     return `${greeting} يرجى الانتظار لحظات بينما أقوم بمراجعة سعر الطلب والقسيمة أو الخصم وتحديث التفاصيل فوراً.`;
   }
 
-  // 8. الرد القياسي المعتمد في حالة عدم وضوح الرسالة (Unclear Inquiry Standard)
-  return `${greeting} كيف يمكنني مساعدتك اليوم؟`;
+  return null;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const queryParam = searchParams.get("query") || "";
-  const cleanInput = queryParam.toLowerCase().trim();
+  const normInput = normalizeText(queryParam);
 
-  if (!cleanInput) {
+  if (!normInput) {
     return NextResponse.json({ status: "error", message: "Query is empty" });
   }
 
   const greetingKeywords = [
     "سلام", "سلام عليكم", "السلام عليكم", 
-    "السلام عليكم ورحمة الله وبركاته", "مرحبا", "أهلا", "اهلا", "صباح الخير", "مساء الخير"
+    "السلام عليكم ورحمه الله وبركاته", "مرحبا", "أهلا", "اهلا", "صباح الخير", "مساء الخير"
   ];
 
-  const hasGreetingInInput = greetingKeywords.some((g) => cleanInput.includes(g));
+  const hasGreetingInInput = greetingKeywords.some((g) => normInput.includes(normalizeText(g)));
 
-  // 1️⃣ قراءة من الشيت أولاً
+  // 1️⃣ المعالجة بالقواعد التراكمية مع مطابقة الأحرف المتعددة
+  const customResponse = processResponse(queryParam, hasGreetingInInput);
+
+  if (customResponse) {
+    const translations = await translateToAllLanguages(customResponse);
+    await appendNewScenarioToSheet(queryParam, customResponse, translations);
+    return NextResponse.json({
+      status: "success",
+      data: translations,
+    });
+  }
+
+  // 2️⃣ القراءة من الشيت للسيناريوهات المفهرسة سابقاً
   try {
     const res = await fetch(GOOGLE_SHEET_CSV_URL, { cache: "no-store" });
     const csvText = await res.text();
@@ -163,9 +187,9 @@ export async function GET(request: Request) {
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cleanCSVField);
         if (row.length > 0 && row[0]) {
-          const sheetKeyword = row[0].toLowerCase().trim();
+          const sheetKeyword = normalizeText(row[0]);
           
-          if (cleanInput === sheetKeyword) {
+          if (normInput === sheetKeyword && !sheetKeyword.includes("سلام")) {
             return NextResponse.json({
               status: "success",
               data: {
@@ -184,12 +208,13 @@ export async function GET(request: Request) {
     console.error("Sheet error:", error);
   }
 
-  // 2️⃣ المعالجة والتصنيف المباشر
-  const arabicResponse = processResponse(cleanInput, hasGreetingInInput);
-  const translations = await translateToAllLanguages(arabicResponse);
+  // 3️⃣ الرد القياسي المعتمد في حالة عدم وضوح الرسالة (Unclear Inquiry Standard)
+  const defaultResponse = hasGreetingInInput 
+    ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك، كيف يمكنني مساعدتك اليوم؟" 
+    : "أهلاً بك، كيف يمكنني مساعدتك اليوم؟";
 
-  // 3️⃣ تغذية الـ Sheet تلقائياً بالنص المدخل الكامل
-  await appendNewScenarioToSheet(queryParam, arabicResponse, translations);
+  const translations = await translateToAllLanguages(defaultResponse);
+  await appendNewScenarioToSheet(queryParam, defaultResponse, translations);
 
   return NextResponse.json({
     status: "success",
