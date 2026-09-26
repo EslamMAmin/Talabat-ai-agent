@@ -47,7 +47,7 @@ async function translateToAllLanguages(arabicText: string) {
   };
 }
 
-// 📝 دالة تغذية الـ Google Sheet بالنص المدخل كاملاً للحفظ المستمر
+// 📝 دالة تغذية الـ Google Sheet بالنص المدخل كاملاً
 async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: string, translations: any) {
   try {
     const payload = {
