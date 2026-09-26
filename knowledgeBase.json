@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "title": "cancellation-process",
+    "url": "https://kb.company.com/dispatch/cancellation-process",
+    "content": "Customer Mantra & Dispatch Cancellation Process Guidelines: Steps to cancel order, verify customer status, and process dispatch unassignment."
+  },
+  {
+    "id": "2",
+    "title": "courier-accidentvehicle-issues",
+    "url": "https://kb.company.com/dispatch/courier-accident",
+    "content": "Handling courier vehicle issues and accidents during dispatch. Actions for dispatchers and rescue courier protocol."
+  },
+  {
+    "id": "3",
+    "title": "address-change-or-wrong-addresspinpoint",
+    "url": "https://kb.company.com/dispatch/address-change",
+    "content": "Protocol for wrong address pinpointing or customer requesting address change after order dispatch."
+  },
+  {
+    "id": "4",
+    "title": "contact-protocols",
+    "url": "https://kb.company.com/dispatch/contact-protocols",
+    "content": "Customer and courier contact protocols, unreachability timers, and calling rules."
+  }
+]
