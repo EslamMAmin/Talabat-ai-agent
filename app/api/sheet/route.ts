@@ -35,11 +35,11 @@ async function translateToAllLanguages(arabicText: string) {
   };
 }
 
-// 📝 دالة حفظ السيناريو الجديد تلقائياً في Google Sheet
-async function appendNewScenarioToSheet(keyword: string, arabicResponse: string, translations: any) {
+// 📝 دالة تغذية الـ Google Sheet بالنص المدخل الكامل (Input) مباشرة
+async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: string, translations: any) {
   try {
     const payload = {
-      keyword: keyword,
+      keyword: rawUserQuery, // يرسل نص البحث كما كتبه العميل بالضبط للعمود الأول
       arabic: arabicResponse,
       english: translations["ENGLISH"] || "",
       urdu: translations["URDU"] || "",
@@ -54,69 +54,59 @@ async function appendNewScenarioToSheet(keyword: string, arabicResponse: string,
       body: JSON.stringify(payload),
     });
   } catch (error) {
-    console.error("Error appending to Sheet:", error);
+    console.error("Error logging to Sheet:", error);
   }
 }
 
-// 🧠 محرك الـ AI لتوليد الرد الاحترافي المطابق لشروط التقييم 10/10
-function generateAIResponse(cleanInput: string, hasGreeting: boolean): { response: string, keyword: string } {
+// 🧠 معالجة وتحليل الشروط بدقة للتقييم 10/10
+function processResponse(cleanInput: string, hasGreeting: boolean): string {
   const greeting = hasGreeting 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك، تم استلام استفسارك.";
 
-  // 1. فحص كبر حجم الطلب / عدم الاتساع للحقيبة (Bag Size / Large Order)
-  const hasBagOrSizeIssue = cleanInput.includes("bag") || cleanInput.includes("fit") || cleanInput.includes("big") || cleanInput.includes("large") || cleanInput.includes("حجم") || cleanInput.includes("شنطة") || cleanInput.includes("حقيبة") || cleanInput.includes("كبير");
+  // 1. كشف طلب كبير / Large Order / الشنطة مش واخدة الطلب
+  const isLargeOrder = 
+    cleanInput.includes("bag") || 
+    cleanInput.includes("fit") || 
+    cleanInput.includes("large") || 
+    cleanInput.includes("big") || 
+    cleanInput.includes("حجم") || 
+    cleanInput.includes("كبير") || 
+    cleanInput.includes("شنطة") || 
+    cleanInput.includes("حقيبة") ||
+    (cleanInput.includes("car") && cleanInput.includes("order"));
 
-  if (hasBagOrSizeIssue) {
-    return {
-      keyword: "حجم الطلب/الحقيبة",
-      response: `${greeting} نعتذر عن كبر حجم الطلب وعدم اتساعه للحقيبة/الدراجة. يرجى تزويدنا برقم الطلب (Order ID) لنقوم بإعادة تعيين سائق سيارة (Car Rider) لنقل الطلب فوراً.`
-    };
+  if (isLargeOrder) {
+    return `${greeting} نعتذر عن كبر حجم الطلب (Large Order) وعدم اتساعه للحقيبة. يرجى تزويدنا برقم الطلب (Order ID) لنقوم بإعادة تعيين سائق سيارة (Car Rider) لنقل الطلب فوراً.`;
   }
 
-  // 2. فحص مشاكل المركبة والسائق العامة
-  if (cleanInput.includes("raddr") || cleanInput.includes("rider") || cleanInput.includes("kar") || cleanInput.includes("car") || cleanInput.includes("سائق") || cleanInput.includes("سيارة")) {
-    return {
-      keyword: "عطل/مشكلة مركبة",
-      response: `${greeting} نعتذر عن المشكلة المتعلقة بالمركبة/السائق. يرجى تزويدنا برقم الطلب (Order ID) لنتمكن من إعادة تعيين سائق آخر أو مساعدتك فوراً.`
-    };
-  }
-  
-  // 3. مشاكل العميل والتسليم
-  if (cleanInput.includes("عميل") || cleanInput.includes("استلمش") || cleanInput.includes("رفض") || cleanInput.includes("تواصل") || cleanInput.includes("رفض ينزل")) {
-    return {
-      keyword: "رفض/مشكلة عميل",
-      response: `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى تزويدنا برقم الطلب (Order ID) ومحاولة التواصل معه مجدداً، وسنتابع مع الحساب فوراً.`
-    };
+  // 2. عطل أو حادث مركبة فقط
+  if (cleanInput.includes("عطل") || cleanInput.includes("موتور") || cleanInput.includes("بنشر") || cleanInput.includes("حادث") || cleanInput.includes("breakdown")) {
+    return `${greeting} نرجو أن تكون بخير. يرجى إفادتنا برقم الطلب (Order ID) وهل الطلب معك الآن لاتخاذ الإجراء المناسب وتفريغك لإصلاح المركبة.`;
   }
 
-  // 4. كود التسليم/الإرجاع
+  // 3. رفض التسليم / العميل
+  if (cleanInput.includes("عميل") || cleanInput.includes("استلمش") || cleanInput.includes("رفض") || cleanInput.includes("تواصل")) {
+    return `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى تزويدنا برقم الطلب (Order ID) ومحاولة التواصل معه مجدداً، وسنتابع فوراً.`;
+  }
+
+  // 4. كود التسليم / الإرجاع
   if (cleanInput.includes("كود") || cleanInput.includes("pin") || cleanInput.includes("رمز")) {
-    return {
-      keyword: "كود تسليم/إرجاع",
-      response: `${greeting} يرجى تزويدنا برقم الطلب (Order ID) والانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع.`
-    };
+    return `${greeting} يرجى تزويدنا برقم الطلب (Order ID) والانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع.`;
   }
 
-  // 5. أصناف مفقودة/المارت
-  if (cleanInput.includes("ناقص") || cleanInput.includes("مارت") || cleanInput.includes("tmart")) {
-    return {
-      keyword: "أصناف مفقودة",
-      response: `${greeting} نعتذر عن وجود أجزاء أو أصناف مفقودة. يرجى تزويدنا برقم الطلب (Order ID) لنراجع إدارة المتجر/المارت فوراً.`
-    };
-  }
-
-  // الرد العام المحسن
-  return {
-    keyword: "استفسار عام",
-    response: `${greeting} نعتذر عن المشكلة الواردة. يرجى تزويدنا برقم الطلب (Order ID) لتفقد الحالة واتخاذ الإجراء المناسب فوراً.`
-  };
+  // 5. الرد العام المطابق للمعيار
+  return `${greeting} نعتذر عن المشكلة الواردة. يرجى تزويدنا برقم الطلب (Order ID) لتفقد الحالة واتخاذ الإجراء المناسب فوراً.`;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const queryParam = searchParams.get("query") || "";
   const cleanInput = queryParam.toLowerCase().trim();
+
+  if (!cleanInput) {
+    return NextResponse.json({ status: "error", message: "Query is empty" });
+  }
 
   const greetingKeywords = [
     "سلام", "سلام عليكم", "السلام عليكم", 
@@ -125,7 +115,7 @@ export async function GET(request: Request) {
 
   const hasGreetingInInput = greetingKeywords.some((g) => cleanInput.includes(g));
 
-  // 1️⃣ المرحلة الأولى: البحث المباشر في Google Sheet
+  // 1️⃣ قراءة من الشيت أولاً
   try {
     const res = await fetch(GOOGLE_SHEET_CSV_URL, { cache: "no-store" });
     const csvText = await res.text();
@@ -138,7 +128,7 @@ export async function GET(request: Request) {
         if (row.length > 0 && row[0]) {
           const sheetKeyword = row[0].toLowerCase().trim();
           
-          if (cleanInput === sheetKeyword || (sheetKeyword.length > 3 && cleanInput.includes(sheetKeyword))) {
+          if (cleanInput === sheetKeyword) {
             return NextResponse.json({
               status: "success",
               data: {
@@ -154,20 +144,18 @@ export async function GET(request: Request) {
       }
     }
   } catch (error) {
-    console.error("Fetch error from Sheet:", error);
+    console.error("Sheet error:", error);
   }
 
-  // 2️⃣ المرحلة الثانية: توليد الرد بالذكاء الاصطناعي مع فهم تفاصيل الشنطة والسيارة
-  const aiResult = generateAIResponse(cleanInput, hasGreetingInInput);
-  
-  // ترجمة الرد فوراً للـ 5 لغات
-  const allTranslations = await translateToAllLanguages(aiResult.response);
+  // 2️⃣ المعالجة والتصنيف المباشر
+  const arabicResponse = processResponse(cleanInput, hasGreetingInInput);
+  const translations = await translateToAllLanguages(arabicResponse);
 
-  // 3️⃣ المرحلة الثالثة: إضافة الرسالة المحدثة تلقائياً للـ Sheet
-  await appendNewScenarioToSheet(cleanInput, aiResult.response, allTranslations);
+  // 3️⃣ تغذية الـ Sheet تلقائياً بالنص المدخل الكامل ليتعلم منه فوراً
+  appendNewScenarioToSheet(queryParam, arabicResponse, translations);
 
   return NextResponse.json({
     status: "success",
-    data: allTranslations,
+    data: translations,
   });
 }
