@@ -35,7 +35,7 @@ async function translateToAllLanguages(arabicText: string) {
   };
 }
 
-// 📝 دالة تغذية الـ Google Sheet بالنص المدخل الكامل لضمان التسجيل 100%
+// 📝 دالة تغذية الـ Google Sheet بالنص المدخل
 async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: string, translations: any) {
   try {
     const payload = {
@@ -47,7 +47,6 @@ async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: st
       kurdishSorani: translations["KURDISH — SORANI"] || "",
     };
 
-    // إرسال البيانات مع متابعة التوجيه (redirect: follow) لضمان قبول Google Apps Script لها
     await fetch(GOOGLE_SHEET_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -59,11 +58,11 @@ async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: st
   }
 }
 
-// 🧠 معالجة وتحليل الشروط بدقة للتقييم 10/10 (بدون طلب Order ID)
+// 🧠 معالجة وتحليل الشروط بدقة واحترافية للتقييم 10/10
 function processResponse(cleanInput: string, hasGreeting: boolean): string {
   const greeting = hasGreeting 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
-    : "أهلاً بك، تم استلام استفسارك.";
+    : "أهلاً بك،";
 
   // 1. كشف طلب كبير / Large Order / الشنطة مش واخدة الطلب
   const isLargeOrder = 
@@ -86,7 +85,7 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     return `${greeting} نرجو أن تكون بخير. يرجى إفادتنا هل الطلب معك الآن ليتسنى لنا اتخاذ الإجراء المناسب وتفريغك لإصلاح المركبة.`;
   }
 
-  // 3. رفض التسليم / العميل
+  // 3. رفض التسليم / مشاكل العميل
   if (cleanInput.includes("عميل") || cleanInput.includes("استلمش") || cleanInput.includes("رفض") || cleanInput.includes("تواصل")) {
     return `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى محاولة التواصل معه مجدداً، ونحن نتابع حالة الطلب معكم الآن.`;
   }
@@ -96,8 +95,13 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     return `${greeting} يرجى الانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع فوراً.`;
   }
 
-  // 5. الرد العام المطابق للمعيار
-  return `${greeting} نعتذر عن المشكلة الواردة. يرجى الانتظار لحظات بينما نتفقد حالة الطلب في النظام لاتخاذ الإجراء المناسب فوراً.`;
+  // 5. القسائم والخصومات وسعر الطلب
+  if (cleanInput.includes("قسيمه") || cleanInput.includes("قسيمة") || cleanInput.includes("voucher") || cleanInput.includes("خصم") || cleanInput.includes("سعر الطلب")) {
+    return `${greeting} يرجى الانتظار لحظات بينما أقوم بمراجعة سعر الطلب والقسيمة أو الخصم وتحديث التفاصيل فوراً.`;
+  }
+
+  // 6. 🎯 الرد القياسي المعتمد في حالة عدم وضوح الرسالة / Unclear Inquiry Standard
+  return `${greeting} كيف يمكنني مساعدتك اليوم؟`;
 }
 
 export async function GET(request: Request) {
@@ -152,7 +156,7 @@ export async function GET(request: Request) {
   const arabicResponse = processResponse(cleanInput, hasGreetingInInput);
   const translations = await translateToAllLanguages(arabicResponse);
 
-  // 3️⃣ تغذية الـ Sheet تلقائياً واستنزاف الإرسال بـ await لضمان إتمام العملية
+  // 3️⃣ تغذية الـ Sheet تلقائياً بالنص المدخل الكامل
   await appendNewScenarioToSheet(queryParam, arabicResponse, translations);
 
   return NextResponse.json({
