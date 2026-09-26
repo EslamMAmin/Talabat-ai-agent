@@ -64,7 +64,7 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك،";
 
-  // 1. مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Issue)
+  // 1. مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage / Reassign Request)
   const isEquipmentIssue = 
     cleanInput.includes("باوتش") || 
     cleanInput.includes("pouch") || 
@@ -77,7 +77,7 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     cleanInput.includes("المعدات");
 
   if (isEquipmentIssue) {
-    return `${greeting} نعتذر عن المشكلة المتعلقة بتلف الحقيبة/الباوتش. يرجى الانتظار لحظات بينما نقوم بإعادة تحويل الطلب لسائق آخر لحماية الشحنة، ومساعدتك في تبديل المعدات.`;
+    return `${greeting} نعتذر عن المشكلة المتعلقة بتلف الحقيبة/الباوتش. يرجى الانتظار لحظات بينما نقوم بإعادة تحويل الطلب لسائق آخر لحماية الشحنة فوراً.`;
   }
 
   // 2. طلب استراحة / راحة / صلاة (Break Request)
