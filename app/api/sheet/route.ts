@@ -59,30 +59,58 @@ async function appendNewScenarioToSheet(keyword: string, arabicResponse: string,
 }
 
 // 🧠 محرك الـ AI لتوليد الرد الاحترافي المطابق لشروط التقييم 10/10
-function generateAIResponse(cleanInput: string, hasGreeting: boolean): string {
+function generateAIResponse(cleanInput: string, hasGreeting: boolean): { response: string, keyword: string } {
   const greeting = hasGreeting 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك، تم استلام استفسارك.";
 
-  // فحص الأخطاء الإملائية والسيناريوهات الهجينة (مثل 1 raddr kar / عطل / شاحنة / عميل / كود)
+  // 1. فحص كبر حجم الطلب / عدم الاتساع للحقيبة (Bag Size / Large Order)
+  const hasBagOrSizeIssue = cleanInput.includes("bag") || cleanInput.includes("fit") || cleanInput.includes("big") || cleanInput.includes("large") || cleanInput.includes("حجم") || cleanInput.includes("شنطة") || cleanInput.includes("حقيبة") || cleanInput.includes("كبير");
+
+  if (hasBagOrSizeIssue) {
+    return {
+      keyword: "حجم الطلب/الحقيبة",
+      response: `${greeting} نعتذر عن كبر حجم الطلب وعدم اتساعه للحقيبة/الدراجة. يرجى تزويدنا برقم الطلب (Order ID) لنقوم بإعادة تعيين سائق سيارة (Car Rider) لنقل الطلب فوراً.`
+    };
+  }
+
+  // 2. فحص مشاكل المركبة والسائق العامة
   if (cleanInput.includes("raddr") || cleanInput.includes("rider") || cleanInput.includes("kar") || cleanInput.includes("car") || cleanInput.includes("سائق") || cleanInput.includes("سيارة")) {
-    return `${greeting} نعتذر عن المشكلة المتعلقة بالمركبة/السائق. يرجى تزويدنا برقم الطلب (Order ID) لنتمكن من إعادة تعيين سائق آخر أو مساعدتك فوراً.`;
+    return {
+      keyword: "عطل/مشكلة مركبة",
+      response: `${greeting} نعتذر عن المشكلة المتعلقة بالمركبة/السائق. يرجى تزويدنا برقم الطلب (Order ID) لنتمكن من إعادة تعيين سائق آخر أو مساعدتك فوراً.`
+    };
   }
   
+  // 3. مشاكل العميل والتسليم
   if (cleanInput.includes("عميل") || cleanInput.includes("استلمش") || cleanInput.includes("رفض") || cleanInput.includes("تواصل") || cleanInput.includes("رفض ينزل")) {
-    return `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى تزويدنا برقم الطلب (Order ID) ومحاولة التواصل معه مجدداً، وسنتابع مع الحساب فوراً.`;
+    return {
+      keyword: "رفض/مشكلة عميل",
+      response: `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى تزويدنا برقم الطلب (Order ID) ومحاولة التواصل معه مجدداً، وسنتابع مع الحساب فوراً.`
+    };
   }
 
+  // 4. كود التسليم/الإرجاع
   if (cleanInput.includes("كود") || cleanInput.includes("pin") || cleanInput.includes("رمز")) {
-    return `${greeting} يرجى تزويدنا برقم الطلب (Order ID) والانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع.`;
+    return {
+      keyword: "كود تسليم/إرجاع",
+      response: `${greeting} يرجى تزويدنا برقم الطلب (Order ID) والانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع.`
+    };
   }
 
+  // 5. أصناف مفقودة/المارت
   if (cleanInput.includes("ناقص") || cleanInput.includes("مارت") || cleanInput.includes("tmart")) {
-    return `${greeting} نعتذر عن وجود أجزاء أو أصناف مفقودة. يرجى تزويدنا برقم الطلب (Order ID) لنراجع إدارة المتجر/المارت فوراً.`;
+    return {
+      keyword: "أصناف مفقودة",
+      response: `${greeting} نعتذر عن وجود أجزاء أو أصناف مفقودة. يرجى تزويدنا برقم الطلب (Order ID) لنراجع إدارة المتجر/المارت فوراً.`
+    };
   }
 
-  // الرد العام المحسن استناداً لدليل المعايير الصارم
-  return `${greeting} نعتذر عن المشكلة الواردة. يرجى تزويدنا برقم الطلب (Order ID) لتفقد الحالة واتخاذ الإجراء المناسب فوراً.`;
+  // الرد العام المحسن
+  return {
+    keyword: "استفسار عام",
+    response: `${greeting} نعتذر عن المشكلة الواردة. يرجى تزويدنا برقم الطلب (Order ID) لتفقد الحالة واتخاذ الإجراء المناسب فوراً.`
+  };
 }
 
 export async function GET(request: Request) {
@@ -97,7 +125,7 @@ export async function GET(request: Request) {
 
   const hasGreetingInInput = greetingKeywords.some((g) => cleanInput.includes(g));
 
-  // 1️⃣ المرحلة الأولى: البحث المباشر في Google Sheet (الـ 500k سيناريو)
+  // 1️⃣ المرحلة الأولى: البحث المباشر في Google Sheet
   try {
     const res = await fetch(GOOGLE_SHEET_CSV_URL, { cache: "no-store" });
     const csvText = await res.text();
@@ -110,7 +138,6 @@ export async function GET(request: Request) {
         if (row.length > 0 && row[0]) {
           const sheetKeyword = row[0].toLowerCase().trim();
           
-          // مطابقة دقيقة أو جزئية من الكشوفات المحفوظة
           if (cleanInput === sheetKeyword || (sheetKeyword.length > 3 && cleanInput.includes(sheetKeyword))) {
             return NextResponse.json({
               status: "success",
@@ -130,14 +157,14 @@ export async function GET(request: Request) {
     console.error("Fetch error from Sheet:", error);
   }
 
-  // 2️⃣ المرحلة الثانية: عدم وجود مطابقة $\leftarrow$ استخدام محرك الـ AI لتوليد الرد بدقة ومراعاة الأخطاء الإملائية
-  const generatedArabic = generateAIResponse(cleanInput, hasGreetingInInput);
+  // 2️⃣ المرحلة الثانية: توليد الرد بالذكاء الاصطناعي مع فهم تفاصيل الشنطة والسيارة
+  const aiResult = generateAIResponse(cleanInput, hasGreetingInInput);
   
   // ترجمة الرد فوراً للـ 5 لغات
-  const allTranslations = await translateToAllLanguages(generatedArabic);
+  const allTranslations = await translateToAllLanguages(aiResult.response);
 
-  // 3️⃣ المرحلة الثالثة: إضافة الرسالة والرد المستنبط تلقائياً إلى الـ Google Sheet ليتعلم منها النظام
-  await appendNewScenarioToSheet(cleanInput, generatedArabic, allTranslations);
+  // 3️⃣ المرحلة الثالثة: إضافة الرسالة المحدثة تلقائياً للـ Sheet
+  await appendNewScenarioToSheet(cleanInput, aiResult.response, allTranslations);
 
   return NextResponse.json({
     status: "success",
