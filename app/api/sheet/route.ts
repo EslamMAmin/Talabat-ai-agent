@@ -100,7 +100,7 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     return `${greeting} يرجى الانتظار لحظات بينما أقوم بمراجعة سعر الطلب والقسيمة أو الخصم وتحديث التفاصيل فوراً.`;
   }
 
-  // 6. 🎯 الرد القياسي المعتمد في حالة عدم وضوح الرسالة / Unclear Inquiry Standard
+  // 6. 🎯 الرد القياسي المعتمد في حالة عدم وضوح الرسالة (Unclear Inquiry Standard)
   return `${greeting} كيف يمكنني مساعدتك اليوم؟`;
 }
 
