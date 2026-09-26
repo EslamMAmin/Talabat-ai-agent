@@ -35,11 +35,11 @@ async function translateToAllLanguages(arabicText: string) {
   };
 }
 
-// 📝 دالة تغذية الـ Google Sheet بالنص المدخل الكامل (Input) مباشرة
+// 📝 دالة تغذية الـ Google Sheet بالنص المدخل الكامل لضمان التسجيل 100%
 async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: string, translations: any) {
   try {
     const payload = {
-      keyword: rawUserQuery, // يرسل نص البحث كما كتبه العميل للعمود الأول مباشرة
+      keyword: rawUserQuery,
       arabic: arabicResponse,
       english: translations["ENGLISH"] || "",
       urdu: translations["URDU"] || "",
@@ -47,14 +47,15 @@ async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: st
       kurdishSorani: translations["KURDISH — SORANI"] || "",
     };
 
+    // إرسال البيانات مع متابعة التوجيه (redirect: follow) لضمان قبول Google Apps Script لها
     await fetch(GOOGLE_SHEET_WEBHOOK_URL, {
       method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
+      redirect: "follow",
     });
   } catch (error) {
-    console.error("Error logging to Sheet:", error);
+    console.error("Error logging to Google Sheet:", error);
   }
 }
 
@@ -151,8 +152,8 @@ export async function GET(request: Request) {
   const arabicResponse = processResponse(cleanInput, hasGreetingInInput);
   const translations = await translateToAllLanguages(arabicResponse);
 
-  // 3️⃣ تغذية الـ Sheet تلقائياً بالنص المدخل الكامل
-  appendNewScenarioToSheet(queryParam, arabicResponse, translations);
+  // 3️⃣ تغذية الـ Sheet تلقائياً واستنزاف الإرسال بـ await لضمان إتمام العملية
+  await appendNewScenarioToSheet(queryParam, arabicResponse, translations);
 
   return NextResponse.json({
     status: "success",
