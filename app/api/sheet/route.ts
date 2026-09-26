@@ -64,7 +64,39 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك،";
 
-  // 1. كشف طلب كبير / Large Order / الشنطة مش واخدة الطلب
+  // 1. مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Issue)
+  const isEquipmentIssue = 
+    cleanInput.includes("باوتش") || 
+    cleanInput.includes("pouch") || 
+    cleanInput.includes("box") || 
+    cleanInput.includes("صندوق") || 
+    cleanInput.includes("مقطوع") || 
+    cleanInput.includes("تالف") || 
+    cleanInput.includes("مكسور") || 
+    cleanInput.includes("ينكسر") ||
+    cleanInput.includes("المعدات");
+
+  if (isEquipmentIssue) {
+    return `${greeting} نعتذر عن المشكلة المتعلقة بتلف الحقيبة/الباوتش. يرجى الانتظار لحظات بينما نقوم بإعادة تحويل الطلب لسائق آخر لحماية الشحنة، ومساعدتك في تبديل المعدات.`;
+  }
+
+  // 2. طلب استراحة / راحة / صلاة (Break Request)
+  const isBreakRequest = 
+    cleanInput.includes("راحة") || 
+    cleanInput.includes("راحه") || 
+    cleanInput.includes("استراحة") || 
+    cleanInput.includes("استراحه") || 
+    cleanInput.includes("break") || 
+    cleanInput.includes("صلاة") || 
+    cleanInput.includes("صلاه") || 
+    cleanInput.includes("غداء") || 
+    cleanInput.includes("بريك");
+
+  if (isBreakRequest) {
+    return `${greeting} تم استلام طلب الاستراحة. يرجى التأكد من عدم وجود طلبات نشطة حالياً، وسنساعدك في تفعيل أوقات الراحة فوراً.`;
+  }
+
+  // 3. كشف طلب كبير / Large Order / الشنطة مش واخدة الطلب
   const isLargeOrder = 
     cleanInput.includes("bag") || 
     cleanInput.includes("fit") || 
@@ -80,27 +112,27 @@ function processResponse(cleanInput: string, hasGreeting: boolean): string {
     return `${greeting} نعتذر عن كبر حجم الطلب (Large Order) وعدم اتساعه للحقيبة. يرجى الانتظار لحظات بينما نقوم بإعادة تعيين سائق سيارة (Car Rider) لنقل الطلب فوراً.`;
   }
 
-  // 2. عطل أو حادث مركبة فقط
+  // 4. عطل أو حادث مركبة فقط
   if (cleanInput.includes("عطل") || cleanInput.includes("موتور") || cleanInput.includes("بنشر") || cleanInput.includes("حادث") || cleanInput.includes("breakdown")) {
     return `${greeting} نرجو أن تكون بخير. يرجى إفادتنا هل الطلب معك الآن ليتسنى لنا اتخاذ الإجراء المناسب وتفريغك لإصلاح المركبة.`;
   }
 
-  // 3. رفض التسليم / مشاكل العميل
+  // 5. رفض التسليم / مشاكل العميل
   if (cleanInput.includes("عميل") || cleanInput.includes("استلمش") || cleanInput.includes("رفض") || cleanInput.includes("تواصل")) {
     return `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى محاولة التواصل معه مجدداً، ونحن نتابع حالة الطلب معكم الآن.`;
   }
 
-  // 4. كود التسليم / الإرجاع
+  // 6. كود التسليم / الإرجاع
   if (cleanInput.includes("كود") || cleanInput.includes("pin") || cleanInput.includes("رمز")) {
     return `${greeting} يرجى الانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع فوراً.`;
   }
 
-  // 5. القسائم والخصومات وسعر الطلب
+  // 7. القسائم والخصومات وسعر الطلب
   if (cleanInput.includes("قسيمه") || cleanInput.includes("قسيمة") || cleanInput.includes("voucher") || cleanInput.includes("خصم") || cleanInput.includes("سعر الطلب")) {
     return `${greeting} يرجى الانتظار لحظات بينما أقوم بمراجعة سعر الطلب والقسيمة أو الخصم وتحديث التفاصيل فوراً.`;
   }
 
-  // 6. 🎯 الرد القياسي المعتمد في حالة عدم وضوح الرسالة (Unclear Inquiry Standard)
+  // 8. الرد القياسي المعتمد في حالة عدم وضوح الرسالة (Unclear Inquiry Standard)
   return `${greeting} كيف يمكنني مساعدتك اليوم؟`;
 }
 
