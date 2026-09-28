@@ -70,7 +70,7 @@ async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: st
   }
 }
 
-// 🧠 محرك التحليل والتعرف على الأحرف والأنماط بكافة أشكالها
+// 🧠 محرك التحليل والتعرف التراكمي الشامل
 function processResponse(rawInput: string, hasGreeting: boolean): string | null {
   const norm = normalizeText(rawInput);
 
@@ -78,7 +78,16 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك،";
 
-  // 1. 📍 كشف أشكال كتابة "المسافة البعيدة" بكافة الأحرف والفرانكو والأخطاء الإملائية
+  // 1. 🕒 مشكلة تأخير السائق / التوصيل (Delivery / Driver Late)
+  const delayKeywords = [
+    "late", "delay", "delayed", "تاخير", "تأخير", "متأخر", "متأخرة",
+    "متاخر", "متاخره", "السائق متاخر", "التوصيل متاخر", "تاخر"
+  ];
+  if (delayKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
+    return `${greeting} نعتذر عن تأخر التوصيل. يرجى الانتظار لحظات بينما نقوم بالتواصل مع السائق للتحقق من أسباب التأخير ومتابعة الطلب فوراً.`;
+  }
+
+  // 2. 📍 كشف أشكال كتابة "المسافة البعيدة" بكافة الأحرف والفرانكو والأخطاء الإملائية
   const distanceKeywords = [
     "مسافه", "مسافة", "المسافه", "المسافة",
     "بعيد", "بعيده", "بعيدة", "بعيدره", "ب عيد",
@@ -87,13 +96,11 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     "ba3id", "ba3ida", "ba3ideh"
   ];
 
-  const isDistanceIssue = distanceKeywords.some((kw) => norm.includes(normalizeText(kw)));
-
-  if (isDistanceIssue) {
+  if (distanceKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
     return `${greeting} يرجى الانتظار لحظات بينما نقوم بمراجعة مسافة الطلب والموقع والتحقق من التفاصيل فوراً.`;
   }
 
-  // 2. 🎒 مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage)
+  // 3. 🎒 مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage)
   const equipmentKeywords = [
     "باوتش", "pouch", "box", "صندوق", "مقطوع", "تالف", "مكسور", "ينكسر", "معدات"
   ];
@@ -101,7 +108,7 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     return `${greeting} نعتذر عن المشكلة المتعلقة بتلف الحقيبة/الباوتش. يرجى الانتظار لحظات بينما نقوم بإعادة تحويل الطلب لسائق آخر لحماية الشحنة فوراً.`;
   }
 
-  // 3. ☕ طلب استراحة / راحة / صلاة (Break Request)
+  // 4. ☕ طلب استراحة / راحة / صلاة (Break Request)
   const breakKeywords = [
     "راحه", "راحة", "استراحه", "استراحة", "break", "صلاه", "صلاة", "غداء", "بريك"
   ];
@@ -109,7 +116,7 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     return `${greeting} تم استلام طلب الاستراحة. يرجى التأكد من عدم وجود طلبات نشطة حالياً، وسنساعدك في تفعيل أوقات الراحة فوراً.`;
   }
 
-  // 4. 📦 طلب كبير / Large Order / الشنطة مش واخدة الطلب
+  // 5. 📦 طلب كبير / Large Order / الشنطة مش واخدة الطلب
   const isLargeOrder = 
     norm.includes("bag") || 
     norm.includes("fit") || 
@@ -125,22 +132,22 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     return `${greeting} نعتذر عن كبر حجم الطلب (Large Order) وعدم اتساعه للحقيبة. يرجى الانتظار لحظات بينما نقوم بإعادة تعيين سائق سيارة (Car Rider) لنقل الطلب فوراً.`;
   }
 
-  // 5. 🛠️ عطل أو حادث مركبة فقط
+  // 6. 🛠️ عطل أو حادث مركبة فقط
   if (norm.includes("عطل") || norm.includes("موتور") || norm.includes("بنشر") || norm.includes("حادث") || norm.includes("breakdown")) {
     return `${greeting} نرجو أن تكون بخير. يرجى إفادتنا هل الطلب معك الآن ليتسنى لنا اتخاذ الإجراء المناسب وتفريغك لإصلاح المركبة.`;
   }
 
-  // 6. 👤 رفض التسليم / مشاكل العميل
+  // 7. 👤 رفض التسليم / مشاكل العميل
   if (norm.includes("عميل") || norm.includes("استلمش") || norm.includes("رفض") || norm.includes("تواصل")) {
     return `${greeting} نعتذر عن الصعوبة في التواصل أو التسليم للعميل. يرجى محاولة التواصل معه مجدداً، ونحن نتابع حالة الطلب معكم الآن.`;
   }
 
-  // 7. 🔑 كود التسليم / الإرجاع
+  // 8. 🔑 كود التسليم / الإرجاع
   if (norm.includes("كود") || norm.includes("pin") || norm.includes("رمز")) {
     return `${greeting} يرجى الانتظار لحظات لمساعدتك في الحصول على الكود الخاص بالتسليم/الإرجاع فوراً.`;
   }
 
-  // 8. 🎟️ القسائم والخصومات وسعر الطلب
+  // 9. 🎟️ القسائم والخصومات وسعر الطلب
   if (norm.includes("قسيمه") || norm.includes("voucher") || norm.includes("خصم") || norm.includes("سعر الطلب")) {
     return `${greeting} يرجى الانتظار لحظات بينما أقوم بمراجعة سعر الطلب والقسيمة أو الخصم وتحديث التفاصيل فوراً.`;
   }
@@ -164,7 +171,7 @@ export async function GET(request: Request) {
 
   const hasGreetingInInput = greetingKeywords.some((g) => normInput.includes(normalizeText(g)));
 
-  // 1️⃣ المعالجة بالقواعد التراكمية مع مطابقة الأحرف المتعددة
+  // 1️⃣ المعالجة بالقواعد التراكمية مع مطابقة الأحرف والفرانكو
   const customResponse = processResponse(queryParam, hasGreetingInInput);
 
   if (customResponse) {
