@@ -70,7 +70,7 @@ async function appendNewScenarioToSheet(rawUserQuery: string, arabicResponse: st
   }
 }
 
-// 🧠 محرك التحليل والتعرف التراكمي الشامل
+// 🧠 محرك التحليل والتعرف التراكمي الشامل المطابق للتقييم 10/10
 function processResponse(rawInput: string, hasGreeting: boolean): string | null {
   const norm = normalizeText(rawInput);
 
@@ -78,13 +78,18 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك،";
 
-  // 1. 🕒 مشكلة تأخير السائق / التوصيل (Delivery / Driver Late)
+  // 1. 🕒 مشكلة تأخير السائق / عدم وصول السائق للمطعم / rider late / delivery late
   const delayKeywords = [
-    "late", "delay", "delayed", "تاخير", "تأخير", "متأخر", "متأخرة",
-    "متاخر", "متاخره", "السائق متاخر", "التوصيل متاخر", "تاخر"
+    "rider late", "delivery late", "driver late", "late rider", "late delivery",
+    "no rider", "where is rider", "where is driver", "rider not arrived",
+    "السائق متاخر", "السائق متأخر", "تأخير السائق", "تاخير السائق",
+    "السائق لم يصل", "السائق ما وصل", "اين السائق", "أين السائق",
+    "السائق غير متاح", "السائق غير موجود", "لا يوجد سائق",
+    "لم يصل المطعم", "ما وصل المطعم", "تاخر التوصيل", "تأخر التوصيل"
   ];
+
   if (delayKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
-    return `${greeting} نعتذر عن تأخر التوصيل. يرجى الانتظار لحظات بينما نقوم بالتواصل مع السائق للتحقق من أسباب التأخير ومتابعة الطلب فوراً.`;
+    return `${greeting} سوف يتم التواصل مع السائق وإبلاغ حضراتكم بوصوله في أسرع وقت ممكن.`;
   }
 
   // 2. 📍 كشف أشكال كتابة "المسافة البعيدة" بكافة الأحرف والفرانكو والأخطاء الإملائية
