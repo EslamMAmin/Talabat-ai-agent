@@ -78,7 +78,16 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     ? "وعليكم السلام ورحمة الله وبركاته! أهلاً بك،" 
     : "أهلاً بك،";
 
-  // 1. 🕒 مشكلة تأخير السائق / عدم وصول السائق للمطعم / rider late / delivery late
+  // 1. ☕ طلبات الراحة والتمب وفك البريك (Break / Rest / TMP / Temp Handling)
+  const breakKeywords = [
+    "راحه", "راحة", "استراحه", "استراحة", "بريك", "تمب", "تيمب", "افك التمب", "فك التمب", "افك البريك", "فك البريك",
+    "tmp", "temp", "break", "rest", "unblock tmp", "remove break", "صلاه", "صلاة", "غداء"
+  ];
+  if (breakKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
+    return `${greeting} سنراجع حالة حضرتكم ونرجع للعمل وفقاً لنوع الراحة وسببها فوراً.`;
+  }
+
+  // 2. 🕒 مشكلة تأخير السائق / عدم وصول السائق للمطعم / rider late / delivery late
   const delayKeywords = [
     "rider late", "delivery late", "driver late", "late rider", "late delivery",
     "no rider", "where is rider", "where is driver", "rider not arrived",
@@ -87,12 +96,11 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     "السائق غير متاح", "السائق غير موجود", "لا يوجد سائق",
     "لم يصل المطعم", "ما وصل المطعم", "تاخر التوصيل", "تأخر التوصيل"
   ];
-
   if (delayKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
     return `${greeting} سوف يتم التواصل مع السائق وإبلاغ حضراتكم بوصوله في أسرع وقت ممكن.`;
   }
 
-  // 2. 📍 كشف أشكال كتابة "المسافة البعيدة" بكافة الأحرف والفرانكو والأخطاء الإملائية
+  // 3. 📍 كشف أشكال كتابة "المسافة البعيدة" بكافة الأحرف والفرانكو والأخطاء الإملائية
   const distanceKeywords = [
     "مسافه", "مسافة", "المسافه", "المسافة",
     "بعيد", "بعيده", "بعيدة", "بعيدره", "ب عيد",
@@ -100,25 +108,16 @@ function processResponse(rawInput: string, hasGreeting: boolean): string | null 
     "masafa", "msafa", "masafeh", "msafeh",
     "ba3id", "ba3ida", "ba3ideh"
   ];
-
   if (distanceKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
     return `${greeting} يرجى الانتظار لحظات بينما نقوم بمراجعة مسافة الطلب والموقع والتحقق من التفاصيل فوراً.`;
   }
 
-  // 3. 🎒 مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage)
+  // 4. 🎒 مشكلة التجهيزات والمعدات / تلف الباوتش أو الصندوق (Equipment Damage)
   const equipmentKeywords = [
     "باوتش", "pouch", "box", "صندوق", "مقطوع", "تالف", "مكسور", "ينكسر", "معدات"
   ];
   if (equipmentKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
     return `${greeting} نعتذر عن المشكلة المتعلقة بتلف الحقيبة/الباوتش. يرجى الانتظار لحظات بينما نقوم بإعادة تحويل الطلب لسائق آخر لحماية الشحنة فوراً.`;
-  }
-
-  // 4. ☕ طلب استراحة / راحة / صلاة (Break Request)
-  const breakKeywords = [
-    "راحه", "راحة", "استراحه", "استراحة", "break", "صلاه", "صلاة", "غداء", "بريك"
-  ];
-  if (breakKeywords.some((kw) => norm.includes(normalizeText(kw)))) {
-    return `${greeting} تم استلام طلب الاستراحة. يرجى التأكد من عدم وجود طلبات نشطة حالياً، وسنساعدك في تفعيل أوقات الراحة فوراً.`;
   }
 
   // 5. 📦 طلب كبير / Large Order / الشنطة مش واخدة الطلب
